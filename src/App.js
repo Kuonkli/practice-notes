@@ -2,17 +2,27 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import NoteForm from './components/NoteForm';
 import NotesList from './components/NoteList';
+import { getNotes, saveNote, deleteNote as dbDeleteNote } from './db';
 
 function App() {
   const [notes, setNotes] = useState([]);
   const [editing, setEditing] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isDBReady, setIsDBReady] = useState(false);
 
+  // Инициализация и загрузка данных
   useEffect(() => {
-    const savedNotes = localStorage.getItem('notes');
-    if (savedNotes) {
-      setNotes(JSON.parse(savedNotes));
-    }
+    const init = async () => {
+      try {
+        const loadedNotes = await getNotes();
+        setNotes(loadedNotes || []);
+        setIsDBReady(true);
+      } catch (error) {
+        console.error('Ошибка загрузки заметок:', error);
+      }
+    };
+
+    init();
 
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -26,22 +36,37 @@ function App() {
     };
   }, []);
 
-  // Сохранение заметок в localStorage при каждом изменении
-  useEffect(() => {
-    localStorage.setItem('notes', JSON.stringify(notes));
-  }, [notes]);
-
-  const addNote = (note) => {
-    setNotes([note, ...notes]);
+  // Сохранение заметок в IndexedDB
+  const addNote = async (note) => {
+    try {
+      await saveNote(note);
+      setNotes([note, ...notes]);
+    } catch (error) {
+      console.error('Ошибка сохранения заметки:', error);
+    }
   };
 
-  const updateNote = (updatedNote) => {
-    setNotes(notes.map(note => note.id === updatedNote.id ? updatedNote : note));
+  const updateNote = async (updatedNote) => {
+    try {
+      await saveNote(updatedNote);
+      setNotes(notes.map(note => note.id === updatedNote.id ? updatedNote : note));
+    } catch (error) {
+      console.error('Ошибка обновления заметки:', error);
+    }
   };
 
-  const deleteNote = (id) => {
-    setNotes(notes.filter(note => note.id !== id));
+  const deleteNote = async (id) => {
+    try {
+      await dbDeleteNote(id);
+      setNotes(notes.filter(note => note.id !== id));
+    } catch (error) {
+      console.error('Ошибка удаления заметки:', error);
+    }
   };
+
+  if (!isDBReady) {
+    return <div className="app-loading">Загрузка приложения...</div>;
+  }
 
   return (
       <div className="app">

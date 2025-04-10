@@ -4,7 +4,7 @@ function Note({ note, deleteNote, setEditing }) {
     return (
         <div className="note">
             <div className="note-content" onClick={() => setEditing(note)}>
-                <p>{note.text}</p>
+                <p>{note.text.length > 230 ? (note.text.slice(0, 230) + "...") : note.text}</p>
                 <small>Создано: {note.date}</small>
             </div>
             <button
